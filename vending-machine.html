@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vending Machine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: #0d0d0d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    padding: 20px;
+  }
+
+  h1 {
+    color: #f0f0f0;
+    font-size: 1.1rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0.5;
+  }
+
+  .machine {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* LEFT: product grid + dispenser */
+  .cabinet {
+    background: #1a1a2e;
+    border: 2px solid #2a2a4a;
+    border-radius: 18px;
+    padding: 20px;
+    width: 340px;
+    box-shadow: 0 0 60px rgba(100,80,255,0.15), inset 0 0 40px rgba(0,0,0,0.4);
+    position: relative;
+  }
+
+  .cabinet-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: #5555aa;
+    letter-spacing: 0.2em;
+    text-align: center;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .slot {
+    background: #111128;
+    border: 1.5px solid #2a2a4a;
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    user-select: none;
+  }
+
+  .slot:hover:not(.empty) {
+    border-color: #7b6fff;
+    background: #1a1a3a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(123,111,255,0.3);
+  }
+
+  .slot.selected {
+    border-color: #7b6fff;
+    background: #1a1a3a;
+    box-shadow: 0 0 0 2px #7b6fff55;
+  }
+
+  .slot.empty { opacity: 0.3; cursor: not-allowed; }
+
+  .slot .emoji { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+
+  .slot .slot-name {
+    font-size: 0.62rem;
+    color: #aaa;
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .slot .slot-price {
+    font-size: 0.7rem;
+    color: #7b6fff;
+    font-weight: 700;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .slot .slot-code {
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    font-size: 0.5rem;
+    color: #444;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .slot .qty-badge {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    font-size: 0.5rem;
+    color: #5a5a8a;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* dispenser tray */
+  .tray {
+    background: #0d0d1f;
+    border: 1.5px solid #2a2a4a;
+    border-radius: 8px;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    font-size: 1.6rem;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px;
+    position: relative;
+  }
+
+  .tray-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: #333;
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+  }
+
+  .tray-empty {
+    font-size: 0.65rem;
+    color: #333;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+
+  /* RIGHT: control panel */
+  .panel {
+    background: #141414;
+    border: 2px solid #222;
+    border-radius: 18px;
+    padding: 22px 18px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  }
+
+  .display {
+    background: #001a00;
+    border: 1.5px solid #003300;
+    border-radius: 8px;
+    padding: 12px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 80px;
+  }
+
+  .display .disp-label {
+    font-size: 0.5rem;
+    color: #004400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .display .disp-msg {
+    font-size: 0.75rem;
+    color: #00dd00;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .display .disp-price {
+    font-size: 1.1rem;
+    color: #00ff88;
+    font-weight: bold;
+    margin-top: 4px;
+  }
+
+  /* coin slot section */
+  .coin-section label {
+    font-size: 0.6rem;
+    color: #555;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .coins {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .coin-btn {
+    background: #1e1e1e;
+    border: 1.5px solid #333;
+    border-radius: 8px;
+    color: #ccc;
+    font-size: 0.7rem;
+    padding: 7px 4px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.15s;
+  }
+
+  .coin-btn:hover {
+    background: #2a2a2a;
+    border-color: #ffd700;
+    color: #ffd700;
+  }
+
+  .coin-btn:active { transform: scale(0.95); }
+
+  .balance-display {
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .balance-display .bal-label {
+    font-size: 0.55rem;
+    color: #444;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .balance-display .bal-amount {
+    font-size: 1.5rem;
+    color: #ffd700;
+    font-weight: 700;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* action buttons */
+  .actions { display: flex; flex-direction: column; gap: 8px; }
+
+  .btn-buy {
+    background: linear-gradient(135deg, #7b6fff, #5b4fff);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 12px;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  .btn-buy:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-buy:active { transform: scale(0.97); }
+  .btn-buy:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+  .btn-refund {
+    background: transparent;
+    border: 1.5px solid #333;
+    border-radius: 10px;
+    color: #666;
+    font-size: 0.72rem;
+    padding: 9px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .btn-refund:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
+  /* log */
+  .log-section { margin-top: 24px; width: 100%; max-width: 560px; }
+
+  .log-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: #333;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .log-box {
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    max-height: 100px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .log-entry {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: #444;
+    padding: 2px 0;
+    border-bottom: 1px solid #111;
+  }
+
+  .log-entry.success { color: #00aa55; }
+  .log-entry.error { color: #aa3333; }
+  .log-entry.info { color: #4455aa; }
+
+  .pop { animation: pop 0.3s ease; }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  .shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  footer {
+    margin-top: 24px;
+    font-size: 0.6rem;
+    color: #222;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.15em;
+  }
+</style>
+</head>
+<body>
+
+<h1>Vending Machine</h1>
+
+<div class="machine">
+  <!-- Cabinet -->
+  <div class="cabinet" id="cabinet">
+    <div class="cabinet-label">// SELECT ITEM</div>
+    <div class="grid" id="grid"></div>
+    <div class="tray" id="tray">
+      <span class="tray-empty" id="trayEmpty">AWAITING SELECTION</span>
+      <span class="tray-label">DISPENSER</span>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <div class="display">
+      <div class="disp-label">DISPLAY</div>
+      <div class="disp-msg" id="dispMsg">Insert coins and select an item.</div>
+      <div class="disp-price" id="dispPrice"></div>
+    </div>
+
+    <div class="balance-display">
+      <div class="bal-label">Balance</div>
+      <span class="bal-amount" id="balDisplay">$0.00</span>
+    </div>
+
+    <div class="coin-section">
+      <label>// INSERT COINS</label>
+      <div class="coins">
+        <button class="coin-btn" onclick="insertCoin(0.25)">¢25</button>
+        <button class="coin-btn" onclick="insertCoin(0.50)">¢50</button>
+        <button class="coin-btn" onclick="insertCoin(1.00)">$1</button>
+        <button class="coin-btn" onclick="insertCoin(2.00)">$2</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-buy" id="btnBuy" onclick="purchase()" disabled>BUY</button>
+      <button class="btn-refund" onclick="refund()">↩ REFUND</button>
+    </div>
+  </div>
+</div>
+
+<div class="log-section">
+  <div class="log-title">// TRANSACTION LOG</div>
+  <div class="log-box" id="logBox"></div>
+</div>
+
+<footer>MIDHAT — VENDING MACHINE v1.0</footer>
+
+<script>
+const PRODUCTS = [
+  { code:'A1', name:'Cola',      emoji:'🥤', price:1.25, qty:3 },
+  { code:'A2', name:'Water',     emoji:'💧', price:0.75, qty:5 },
+  { code:'A3', name:'Chips',     emoji:'🍟', price:1.50, qty:2 },
+  { code:'B1', name:'Chocolate', emoji:'🍫', price:1.75, qty:4 },
+  { code:'B2', name:'Gummy',     emoji:'🍬', price:1.00, qty:6 },
+  { code:'B3', name:'Cookie',    emoji:'🍪', price:1.25, qty:3 },
+  { code:'C1', name:'Coffee',    emoji:'☕', price:2.00, qty:2 },
+  { code:'C2', name:'Juice',     emoji:'🧃', price:1.50, qty:4 },
+  { code:'C3', name:'Protein',   emoji:'💪', price:2.50, qty:1 },
+];
+
+let balance = 0;
+let selected = null;
+let trayItems = [];
+
+function fmt(n) { return '$' + n.toFixed(2); }
+
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  PRODUCTS.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'slot' + (p.qty === 0 ? ' empty' : '');
+    div.id = 'slot-' + i;
+    div.innerHTML = `
+      <span class="slot-code">${p.code}</span>
+      <span class="qty-badge">×${p.qty}</span>
+      <span class="emoji">${p.emoji}</span>
+      <span class="slot-name">${p.name}</span>
+      <span class="slot-price">${fmt(p.price)}</span>
+    `;
+    if (p.qty > 0) div.onclick = () => selectItem(i);
+    grid.appendChild(div);
+  });
+}
+
+function selectItem(i) {
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+  selected = i;
+  const p = PRODUCTS[i];
+  document.getElementById('slot-' + i).classList.add('selected');
+  setDisplay(`${p.emoji} ${p.name} selected.`, fmt(p.price));
+  updateBuyBtn();
+  addLog(`Selected: ${p.name} (${p.code}) — ${fmt(p.price)}`, 'info');
+}
+
+function insertCoin(amount) {
+  balance = Math.round((balance + amount) * 100) / 100;
+  updateBalance();
+  setDisplay(`Inserted ${fmt(amount)}. Balance: ${fmt(balance)}`, selected !== null ? fmt(PRODUCTS[selected].price) : '');
+  updateBuyBtn();
+  addLog(`Inserted ${fmt(amount)} → Balance: ${fmt(balance)}`, 'info');
+}
+
+function updateBalance() {
+  document.getElementById('balDisplay').textContent = fmt(balance);
+}
+
+function updateBuyBtn() {
+  const btn = document.getElementById('btnBuy');
+  btn.disabled = !(selected !== null && balance >= PRODUCTS[selected].price && PRODUCTS[selected].qty > 0);
+}
+
+function purchase() {
+  if (selected === null) return;
+  const p = PRODUCTS[selected];
+  if (balance < p.price) {
+    setDisplay(`Need ${fmt(p.price - balance)} more.`, fmt(p.price));
+    document.getElementById('cabinet').classList.add('shake');
+    setTimeout(() => document.getElementById('cabinet').classList.remove('shake'), 400);
+    return;
+  }
+  const change = Math.round((balance - p.price) * 100) / 100;
+  balance = 0;
+  p.qty--;
+
+  trayItems.push(p.emoji);
+  updateTray();
+  updateBalance();
+  buildGrid();
+  selected = null;
+  updateBuyBtn();
+
+  let msg = `Enjoy your ${p.name}!`;
+  if (change > 0) msg += ` Change: ${fmt(change)}`;
+  setDisplay(msg, '');
+  addLog(`✓ Dispensed: ${p.name} — Change: ${fmt(change)}`, 'success');
+}
+
+function refund() {
+  if (balance === 0) {
+    setDisplay('No balance to refund.', '');
+    return;
+  }
+  addLog(`↩ Refunded: ${fmt(balance)}`, 'error');
+  setDisplay(`Refunded ${fmt(balance)}.`, '');
+  balance = 0;
+  updateBalance();
+  updateBuyBtn();
+}
+
+function updateTray() {
+  const tray = document.getElementById('tray');
+  const empty = document.getElementById('trayEmpty');
+  if (trayItems.length === 0) {
+    empty.style.display = '';
+  } else {
+    empty.style.display = 'none';
+    // Add new item with pop
+    const span = document.createElement('span');
+    span.textContent = trayItems[trayItems.length - 1];
+    span.className = 'pop';
+    span.style.fontSize = '1.8rem';
+    span.title = 'Click to collect';
+    span.style.cursor = 'pointer';
+    span.onclick = function() { this.remove(); };
+    tray.appendChild(span);
+  }
+}
+
+function setDisplay(msg, price) {
+  document.getElementById('dispMsg').textContent = msg;
+  document.getElementById('dispPrice').textContent = price || '';
+}
+
+function addLog(msg, type) {
+  const box = document.getElementById('logBox');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  const time = new Date().toLocaleTimeString('en-US', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  entry.textContent = `[${time}] ${msg}`;
+  box.prepend(entry);
+}
+
+buildGrid();
+</script>
+</body>
+</html>
